@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>100 cartas cortas</title>
+<style>
+:root{
+  --fondo:#213f99;          /* azul tinta (arriba y cuadro del número) */
+  --fondo2:#ede1cf;         /* beige papel (abajo) */
+  --papel:#ede1cf;          /* beige del cuadro del poema */
+  --tinta:#ede1cf;
+  --negro:#111;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--fondo:#3a4bb0;--fondo2:#171c3d;}
+}
+:root[data-theme="dark"]{--fondo:#3a4bb0;--fondo2:#171c3d;}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:Georgia,"Times New Roman",serif;background:var(--fondo2);color:var(--tinta)}
+.app{height:100%;display:flex;flex-direction:column}
+.mitad{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;padding:16px;min-height:0}
+.arriba{background:var(--fondo)}
+.abajo{background:var(--fondo2)}
+.cuadro{width:min(70vw,300px);aspect-ratio:1/1;position:relative;overflow:hidden}
+#foto{background:var(--papel) center/cover no-repeat;display:flex;align-items:center;justify-content:center;cursor:pointer}
+#foto.conFoto::before{content:"";position:absolute;inset:0;background:radial-gradient(circle,transparent 38%,rgba(20,28,100,.6) 40%) 0 0/6px 6px;pointer-events:none}
+#foto.conFoto #poema{color:#fff;text-shadow:0 0 6px #141c64,0 0 3px #141c64}
+#poema{position:relative;z-index:1;padding:16px;text-align:center;font-size:clamp(14px,4.2vw,19px);line-height:1.35;white-space:pre-line;color:#213f99;max-height:100%;overflow:auto}
+.firma{margin-top:14px;font-style:italic;opacity:.9;font-size:15px}
+#caja{background:var(--fondo);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+#num{width:60%;font:inherit;font-size:44px;text-align:center;background:transparent;border:0;border-bottom:2px solid var(--tinta);color:var(--tinta);outline:none;padding:4px}
+#num::placeholder{color:var(--tinta);opacity:.55}
+.ayuda{font-size:13px;opacity:.85}
+#cambiar{position:absolute;right:10px;bottom:8px;font-size:12px;opacity:.7;background:none;border:0;color:inherit;cursor:pointer}
+input[type=file]{display:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="mitad arriba">
+    <div class="cuadro" id="foto" title="Toca para poner tu foto"><div id="poema">Escribe un número abajo</div></div>
+    <input type="file" id="archivo" accept="image/*">
+  </div>
+  <div class="mitad abajo">
+    <div class="cuadro" id="caja">
+      <input id="num" type="number" inputmode="numeric" min="1" max="100" placeholder="1–100" autocomplete="off">
+      <div class="ayuda">un número del 1 al 100</div>
+    </div>
+    <button id="cambiar" type="button">foto</button>
+  </div>
+</div>
+
+<script>
+/* ===== PEGA AQUÍ TUS 100 POEMAS =====
+   Uno por línea, entre comillas y con coma al final.
+   Para un salto de línea dentro de un poema usa \n
+   Ejemplo: "Primer verso\nsegundo verso",
+*/
+var POEMAS = [
+  "Odio mi mal hábito de pausas largas, pero entre todo eso las adoro porque preparo cosas para ti",
+  "Deseos y bendiciones, no solo poesía mala, te doy",
+  "Muñeca princesa, me gustas completa",
+  "Te pierdes entre la luz, tu tono clarito me mama",
+  "Te deseo con calma, que nada te falte, que el estrés deje tu mente",
+  "Hasta cuando me ignoras me gusta, regreso con más fuerza para que voltees a verme",
+  "Tus ojos son esa pausa exacta donde el caos de la ciudad se apaga por completo",
+  "Caminar a tu lado sin prisa es mi forma favorita de ganarle tiempo al reloj",
+  "Me encantas en tus días grises, ahí es cuando más ganas me dan de ser tu refugio",
+  "Eres la melodía que se repite en mi cabeza, el pensamiento favorito que repito siempre",
+  "Quédate un ratito más, aunque sea en silencio, con eso me basta y me sobra",
+  "Eres arte puro sin necesidad de museos ni marcos caros",
+  "Te pienso más de lo que admito y te extraño más de lo que soporto.",
+  "Si el destino es incierto, al menos quiero que me agarre de tu mano",
+  "Te guardo en mis pensamientos más bonitos, esos que no le cuento a nadie",
+  "Tienes esa mezcla perfecta entre ternura infinita y carácter fuerte",
+  "Contigo no hay papeles que actuar, soy exactamente quien quiero ser",
+  "Eres esa chispa que le falta a mis días grises de rutina",
+  "Me gusta cómo hueles, cómo hablas, cómo caminas, cómo existes",
+  "Eres mi tentación constante y mi paz al mismo tiempo",
+  "Mis latidos del corazón te los dedico completos",
+  "Te elegiría una y mil veces, sin pensarlo, en cualquier vida, si reencarno te busco para entregarme de nuevo",
+  "Me gusta cuidarte, verte crecer y estar ahí para aplaudir tus triunfos",
+  "Eres la razón por la que creo en las cosas bonitas de la vida",
+  "Me gusta tu pelo, tus cejas y ojos, tu peso y también tus anteojos, tus inseguridades las quiero abrazar para que veas que lo que siento es de verdad",
+  "Me gusta cómo cuidas de los tuyos y a los demás, tienes un corazón gigante",
+  "Me encanta caminar contigo por las calles de este mundo caótico",
+  "Te quiero cerquita, en las buenas, en las malas y en los ratos de flojera.",
+  "Mezcla tu baba con la mía, que salga un néctar más dulce que el almíbar",
+  "Tienes una mirada profunda que me obliga a decirte siempre la verdad",
+  "Deseo abrazarte y sentir que el mundo exterior desaparece por un segundo",
+  "Me fascina tu voz, tu risa, tu esencia y todo lo que te compone",
+  "Soy un pirómano, me gusta el fuego que enciendes en mi",
+  "Te deseo unas buenas noches y un descanso que cure tu cansancio",
+  "Tengo miedo de decirlo, pero mi alma ama la tuya, soltarlo también me da nervios, quiero decirlo y gritarlo, algo más que un te quiero",
+  "Compensemos el tiempo perdido, el tiempo de distancia, un picnic pendiente nos espera",
+  "Buenas noticias te traigo, una semana completa te estuve soñando",
+  "Desnúdame el alma, destroza mi ser, encuentra todo mi querer y tómalo también, el corazón lo siente y ese es tuyo, pero el cariño le da combustible, quiero que lo tengas también",
+  "Si un día te vas, te alejas y no estás, ten por seguro que siempre estarás en mi mente y corazón",
+  "Programador, criminólogo, músico, soy multifacético, no me estoy quieto y cambio seguido, pero nunca cambia lo que en verdad siento por ti",
+  "Deseo que tu boca diga mi nombre, que tus ojos me vean con cariño o indiferencia, que tu cabello se mueva y me roce",
+  "No soy el más guapo ni el más atractivo, pero tengo los chistes más rancios que te pueden hacer reír",
+  "Desde los 16 me tienes a tus pies",
+  "Carita de ángel, labios carmesí, una forma de caminar que hipnotiza, ve como tiemblo si te veo",
+  "Esto es un caballo de Troya, que busca infiltrarse en tu corazón",
+  "Si el mundo se acaba, mírame a los ojos que solo me importa ver ese paisaje por última vez",
+  "Odio tener que extrañarte, quisiera solo verte por 5 minutos pero así no tener esta tortura",
+  "Que mal que me pones, me traes loco y con una gran obsesión, soy tu fan, soy tu mártir",
+  "Tienes las manos más suaves que existen, empápalas de sudor nervioso, que me llena de ternura",
+  "Me gusta tus pláticas de hospital, y términos médicos que te llenan de pasión",
+  "Te retrato en mi mente, reproduzco tu voz en mis sueños, imposible olvidarme de ti",
+  "Sabes que te quiero, te escribí una canción",
+  "Ni con escalera soy capaz de alcanzar tu grandeza",
+  "Contigo quiero ir lento y despacio, pero si tú quieres, acelero las cosas",
+  "Eres ese sueño que no desaparece, que está en proceso de que aparezca, de que aparezcas enfrente de mi",
+  "Duda de mi, para demostrártelo más",
+  "Si tuviera que elegir un solo lugar para quedarme a vivir, serían tus abrazos",
+  "Te escribiría cien poemas y en ninguno alcanzaría a describir lo mucho que te pienso, por eso quiero llegar a mil",
+  "Y de esos mil, continuar y no parar",
+  "Si la distancia es una prueba, mi amor por ti sale victorioso todos los días",
+  "Eres ese café por la mañana que me da la energía para comerme el mundo",
+  "Deseo que todo te salga de maravilla, que cumplas todo y te comas el mundo",
+  "Eres la pieza que no sabía que le faltaba a mi rompecabezas",
+  "Si el futuro es incierto, al menos me consuela saber que te llevo en el corazón",
+  "Me gusta como te ves con todo, en vestido, en uniforme, jeans y una blusa que combina, con todo te ves tan uff",
+  "Y es que tu completa eres mi debilidad, y se te da tan bien, que ser tú misma es tu habilidad, la habilidad de hacerme sentir frágil y tan bien",
+  "Eres y serás mi historia favorita, la única que quiero seguir escribiendo todos los días",
+  "Tienes una forma de mirar que desarma la coraza que construó sobre mí",
+  "Tienes una nobleza en el alma que se nota en cada pequeño gesto que tienes con los demás",
+  "Eres el ancla que me mantiene firme cuando todo lo demás parece tambalearse",
+  "Entre guantes de látex, cubrebocas, medicamentos y turnos interminables, tu vocación me enamora tanto como tu sonrisa",
+  "Me gusta imaginar nuestros mundos tan distintos chocando y creando un universo propio",
+  "No te pido que me escojas, estoy contento con que me prestes tu tiempo para que veas lo que siento por ti",
+  "Me fascina cómo combinas esa bata blanca con la ternura infinita que guardas dentro",
+  "Las nubes me recuerdan tanto a ti, la luz de los días también, la madrugada que calma me trae, no te comparas con eso, esas cosas se comparan con tu ser",
+  "Me gusta caminar por los pasillos de mi memoria y encontrarte siempre sonriendo",
+  "Eres la inspiración, la dueña, la musa de lo que escribo, parte de mi biografía eres",
+  "Adoro cómo tus manos expertas curan a los demás, mientras tu sola presencia me cura a mí sin tocarme",
+  "Quédate un rato que se vuelvan años",
+  "Dime dónde quieres que nos veamos, y ahí te esperaré toda una vida",
+  "No disimulo desde hace tiempo, conoces mi cara de bobo que pongo al verte",
+  "Babeo por ti, tiemblo por ti, sudo de los nervios, ay mujer, que me pones tan mal que me encanta",
+  "Yo te quiero bien, y si a mí tú también, nos podemos entender",
+  "Soy fan de unas cejas bonitas y unos ojitos que ocupan lentes, unos labios rojitos y unos cachetes re suaves, te sigo describiendo?",
+  "Admirador de esas manos tuyas, de esa forma de caminar que a veces puede ser torpe, de la mirada penetrante que tienes, de la voz que suena tan dulce en mis oídos",
+  "No hay manera de cambiar o pensar en alguien más",
+  "Estas presente, confío en ti, no me siento solo aunque haya momentos de silencio, porque te siento tanto",
+  "Eres ese proyecto de vida que no viene en ningún plano, pero que es el único que quiero construir",
+  "La banda sonora de mi tranquilidad, es el sonido de tus latidos",
+  "En cada letra, va una parte de mi, ya te lo dije, pero no solo es cariño, es la paz que me das, la confianza que tengo de abrirme a ti",
+  "Eres una mezcla entre realidad y magia, que mantiene mis pies en la tierra y mi cabeza en las estrellas",
+  "Tengo la fantasía de dormir a tu lado, sobre algún pasto o en un asiento de camión, donde sea pero sentir eso que para mí es más íntimo que un beso",
+  "No logro descifrar el misterio de tus ojos, como le haces para hacerme temblar?",
+  "Oye nena, oye linda, oye preciosa, quiero decirte de tantas formas empalagosas, sin tu permiso lo haré, solo dime si te incomoda",
+  "Me derrites el pecho con el fuego que traes",
+  "También enfríame los nervios con el invierno que puedes ser",
+  "Eres más linda que las portadas de la música indie que descubro en las madrugadas",
+  "Te lo digo en Python, te lo digo en inglés tal vez, soy un friki que en varios lenguajes te lo va a decir",
+  "Como Don Enrique que le hablaba en italiano a mi bisabuela, en forma de carta o canción",
+  "Aunque lo diga en tantas formas, papel o digital, no alcanza para plasmar el sentimiento. Tal vez gritarlo, o susurrarlo a tu oído"
+];
+
+var num = document.getElementById("num");
+var poema = document.getElementById("poema");
+
+function mostrar(){
+  var n = parseInt(num.value, 10);
+  if (!n) { poema.textContent = "Escribe un número abajo"; return; }
+  if (n < 1 || n > 100) { poema.textContent = "Elige del 1 al 100"; return; }
+  poema.textContent = POEMAS[n-1] || ("(Falta el poema " + n + ")");
+}
+num.addEventListener("input", mostrar);
+
+var archivo = document.getElementById("archivo");
+function elegir(){ archivo.click(); }
+document.getElementById("foto").addEventListener("click", function(e){ if(e.target.id!=="poema") elegir(); });
+document.getElementById("cambiar").addEventListener("click", elegir);
+archivo.addEventListener("change", function(){
+  var f = archivo.files[0]; if(!f) return;
+  var r = new FileReader();
+  r.onload = function(){
+    var el = document.getElementById("foto");
+    el.style.backgroundImage = "url(" + r.result + ")";
+    el.style.filter = "grayscale(1) contrast(1.5)"; el.classList.add("conFoto");
+    poema.style.filter = "none";
+  };
+  r.readAsDataURL(f);
+});
+</script>
+</body>
+</html>
